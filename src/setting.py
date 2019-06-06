@@ -5,3 +5,4 @@
 GEOM_USER_METHOD = 'draw' # user draw polygon
 CLOUD_COVER = 0.05
 SAVED_SEARCH_ID = 'ef8ba72cbdec4c9090895cb73c240d4b'
+INTERSECT_AREA_PARTION = 0.1

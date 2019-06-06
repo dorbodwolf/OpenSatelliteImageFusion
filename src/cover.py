@@ -3,6 +3,7 @@ from GeoMetDemo import dumps as dumpWKT
 from shapely import wkt
 import numpy as np
 import copy
+from setting import INTERSECT_AREA_PARTION
 
 class Cover:
     """
@@ -64,7 +65,8 @@ class Cover:
             updatedCheckedList = []
             print("Begin Checking " + uncheckedID + " ,Checked Item Now is {}".format(len(checkedItemList)))
             for checkedItem in checkedItemList:
-                if checkedItem['geom'].area < 1e-3: # 这个阈值很关键，太大会漏，太小会拖垮程序
+                # DEBUG: 云量为0不再更新
+                if checkedItem['cloud'] == 0 or checkedItem['geom'].area < 1e-5: 
                     # continue
                     # DEBUG
                     updatedCheckedList.append(checkedItem)
@@ -76,7 +78,7 @@ class Cover:
                     if checkedItem['geom'].intersects(uncheckedGeom):
                         intersectGeom = checkedItem['geom'].intersection(uncheckedGeom)
                         # DEBUG 如果待插入的item与存在的块相交面积太小，则不去急着更新块,因为这是碎块产生太多的根本原因
-                        if intersectGeom.area < 1e-4:
+                        if intersectGeom.area / checkedItem['geom'].area < INTERSECT_AREA_PARTION:
                             updatedCheckedList.append(checkedItem)
                             continue
                         # 待插入数据与存在数据的象元尺寸相同
@@ -120,17 +122,19 @@ class Cover:
                     exit(0)
                 else:
                     pass
-            # 按id合并checkedItemList的元素
-            print("--Checked Item Now is {}".format(len(updatedCheckedList))  + " ,Begin Merging Items by ID")
-            import pandas as pd 
-            mergedUpdatedCheckedList = [{'id': name, 'geom':self._unionShapelyObjLists([geom for geom in group.geom]), \
-                'res': group['res'].iloc[0], 'cloud': group.cloud.iloc[0]} \
-                for name, group in pd.DataFrame(updatedCheckedList).groupby(['id'])]
-            checkedItemList = []
-            checkedItemList = mergedUpdatedCheckedList
-            print("--End Merging Items by ID!" + " Checked Item Now is {}".format(len(checkedItemList)))
-        
+            # # 按id合并checkedItemList的元素
+            # print("--Begin Merging Items by ID!")
+            # print("--Checked Item Now is {}".format(len(updatedCheckedList)))
+            # import pandas as pd 
+            # mergedUpdatedCheckedList = [{'id': name, 'geom':self._unionShapelyObjLists([geom for geom in group.geom]), \
+            #     'res': group['res'].iloc[0], 'cloud': group.cloud.iloc[0]} \
+            #     for name, group in pd.DataFrame(updatedCheckedList).groupby(['id'])]
+            # checkedItemList = []
+            # checkedItemList = mergedUpdatedCheckedList
+            # print("--End Merging Items by ID!" + " Checked Item Now is {}".format(len(checkedItemList)))
+            checkedItemList = updatedCheckedList
         print("Begin Processing return Item List")
+        print("===后处理1：拆分复合多边形===")
         # 将结果item中的multipolygon分解为polygon
         splitItemList = []
         for item in checkedItemList:
@@ -144,10 +148,15 @@ class Cover:
             # 严谨的异常处理
             else:
                 print("ERROR GEOMETRY TYPE THAT CANNOT HANDLE BY SPLIT")
-        print("===拆分复合多边形===")
         for item in splitItemList:
             print(item['geom'].type)
-
+        # print("===后处理2：按ID合并返回结果===")
+        # # 按id合并返回元素
+        # print("--splitItemList Now is {}".format(len(splitItemList))  + " ,Begin Merging Items by ID")
+        # import pandas as pd 
+        # mergedSplitItemList = [{'id': name, 'geom':self._unionShapelyObjLists([geom for geom in group.geom]), \
+        #         'res': group['res'].iloc[0], 'cloud': group.cloud.iloc[0]} \
+        #         for name, group in pd.DataFrame(splitItemList).groupby(['id'])]
         print("End Processing return Item List")
         return splitItemList
 

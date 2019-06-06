@@ -3,7 +3,7 @@ from shapely.geometry import mapping
 
 def writeJSON(cover_result):
     """
-    将覆盖结果写入GeoJSON
+    输出覆盖结果报表，并将覆盖结果写入GeoJSON
     """
     from collections import OrderedDict
     cover_schema = {
